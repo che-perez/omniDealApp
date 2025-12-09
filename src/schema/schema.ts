@@ -3,7 +3,7 @@ export interface Books {
     id: string;
     title: string;
     normalizedTitle: string;
-    imageUrl: URL;
+    imageUrl: string;
     category: string;
     prices: Price[];
     bestPrice: Price;
@@ -17,6 +17,6 @@ export interface Price {
     originalPrice: number;
     salePrice: number;
     discount: number;
-    url: URL;
+    url: string;
     inStock: boolean;
 }
