@@ -1,5 +1,6 @@
 import { type JSX, memo, useMemo, useRef } from "react";
 import { type Books, type Price } from "../schema/schema";
+import { useBookContext } from "../hooks/BookContext";
 
 interface BooksListProps {
     books?: Books[];
@@ -8,6 +9,8 @@ interface BooksListProps {
 function BooksList({ books }:BooksListProps): JSX.Element {
 
     const tableRef = useRef<HTMLDivElement>(null);
+
+    const { currentPage, setCurrentPage, itemsPerPage } = useBookContext();
 
     // Extract unique store names from book data
     // Use Memo to avoid recalculation on every render, only runs when books data changes.
@@ -57,9 +60,64 @@ function BooksList({ books }:BooksListProps): JSX.Element {
         return price !== null && price.salePrice == book.bestPrice.salePrice;
     };
 
+    // Calculate total pages
+    const totalPages: number = useMemo((): number => books?.length ? Math.ceil(books?.length / itemsPerPage) : 1, [books?.length, itemsPerPage]);
+
+    // Get books for current Page
+    const paginatedBooks: Books[] | undefined = useMemo(() => {
+        const startIndex: number = (currentPage - 1) * itemsPerPage;
+        return books?.slice(startIndex, startIndex + itemsPerPage);
+    }, [books, currentPage, itemsPerPage]);
+
+    /**
+     * Handle Page change
+     * 
+     * @param {number} newPage Target page number 
+     */
+    const handlePageChange = (newPage: number): void => {
+        setCurrentPage(newPage);
+        tableRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    // Divide page number Array to only show the first and last page with 4 pages in between.
+    const getPageNums: number[] = useMemo(() => {
+        const pageLimit: number = 4;
+        const pages: number[] = [];
+        pages.push(1);
+
+        let startPage: number = Math.max(2, currentPage - Math.floor(pageLimit / 2));
+        let endPage: number = Math.min(totalPages - 1, currentPage + Math.floor(pageLimit / 2));
+
+        if(endPage - startPage + 1 < pageLimit) {
+            if(startPage === 2) {
+                endPage = Math.min(totalPages - 1, startPage + pageLimit - 1);
+            } else if(endPage === totalPages - 1) {
+                startPage = Math.max(2, endPage - pageLimit + 1);
+            }
+        }
+
+        for(let i = startPage; i <= endPage; i++) {
+            pages.push(i);
+        }
+
+        if(totalPages > 1) {
+            pages.push(totalPages);
+        }
+
+        return pages;
+    }, [currentPage, totalPages])
+
 
     return (
         <div ref={tableRef} className="space-y-4">
+            <div className="flex- items-center justify-between px-2">
+                <p className="text-sm text-[#6B7280]">
+                    Showing {paginatedBooks?.length} of {books?.length} graphic novels.
+                </p>
+                <p className="text-sm text-[#6B7280]">Page {currentPage} of {totalPages}</p>
+            </div>
+
+            {/* Books List */}
             <div className="overflow-x-auto">
                 <table className="scandi-table">
                     <thead>
@@ -72,7 +130,7 @@ function BooksList({ books }:BooksListProps): JSX.Element {
                         </tr>
                     </thead>
                     <tbody>
-                        {books?.map((book: Books) => (
+                        {paginatedBooks?.map((book: Books) => (
                             <tr key={book.id}>
                                 {/* Title */}
                                 <td className="align-top">
@@ -112,6 +170,23 @@ function BooksList({ books }:BooksListProps): JSX.Element {
                     </tbody>
                 </table>
             </div>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+                <ul className="flex items-center justify-center gap-2 pt-4" role="nav">
+                    <li>
+                        <button onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1} className="px-4 py-2 text-sm font-medium text-[#374151] bg-white border border-[#E5E7EB] rounded-md hover:bg-[#F3F4F6] disabled:opacity-50 disabled:cursor-not-allowed transition-colors">Prev</button>
+                    </li>
+                    <div className="flex gap-1">
+                        {getPageNums.map((pageNum: number) => (
+                            <li key={pageNum}>
+                                <button onClick={() => handlePageChange(pageNum)} className={`w-10 h-10 text-sm font-medium rounded-md transition-colors ${currentPage === pageNum ? 'text-white bg-black': 'bg-white text-[#374151] border border-[#E5E7EB] hover:bg-[#F3F4F6]'}`}>{pageNum}</button>
+                            </li>
+                        ))}
+                    </div>
+                    <button onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages} className="px-4 py-2 text-sm font-medium text-[#374151] bg-white border border-[#E5E7EB] rounded-md hover:bg-[#F3F4F6] disabled:opacity-50 disabled:cursor-not-allowed transition-colors">Next</button>
+                </ul>
+            )}
         </div>
     )
 }
