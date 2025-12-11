@@ -110,7 +110,7 @@ function BooksList({ books }:BooksListProps): JSX.Element {
 
     return (
         <div ref={tableRef} className="space-y-4">
-            <div className="flex- items-center justify-between px-2">
+            <div className="flex items-center justify-between px-2">
                 <p className="text-sm text-[#6B7280]">
                     Showing {paginatedBooks?.length} of {books?.length} graphic novels.
                 </p>
